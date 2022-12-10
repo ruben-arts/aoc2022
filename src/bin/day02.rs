@@ -1,5 +1,5 @@
 use std::path::Path;
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 enum Shape {
     Rock = 1,
     Paper = 2,
@@ -9,23 +9,31 @@ enum Shape {
 enum GameEnd {
     Win = 6,
     Lose = 0,
-    Tie = 3,
+    Draw = 3,
 }
 
-/// Match hand from input with Hand enum
-fn match_hand(hand: &str) -> Option<Shape> {
-    return match hand {
-        "A" | "X" => Some(Shape::Rock),
-        "B" | "Y" => Some(Shape::Paper),
-        "C" | "Z" => Some(Shape::Scissor),
-        _ => None,
-    };
+struct Hand{
+    shape: Shape,
+    wins_from: Shape,
+    looses_from: Shape,
 }
+impl Hand{
+    fn outcome(&self, opponent: &Hand) -> GameEnd{
+        return if self.shape == opponent.shape{
+            GameEnd::Draw
+        } else if self.looses_from == opponent.shape {
+            GameEnd::Lose
+        } else{
+            GameEnd::Win
+        };
+    }
+}
+
 /// Part two needs the values to be matched to GameEnd.
 fn match_end(end: &str) -> Option<GameEnd>{
     return match end {
         "X" => Some(GameEnd::Lose),
-        "Y" => Some(GameEnd::Tie),
+        "Y" => Some(GameEnd::Draw),
         "Z" => Some(GameEnd::Win),
         _ => None,
     };
@@ -35,31 +43,41 @@ fn main() {
     let day = Path::new(file!()).file_stem().unwrap().to_str().unwrap();
     let input = std::fs::read_to_string(format!("inputs/{day}.txt")).unwrap();
 
+    let rock = Hand{ shape: Shape::Rock, wins_from: Shape::Scissor, looses_from: Shape::Paper};
+    let paper = Hand{ shape: Shape::Paper, wins_from: Shape::Rock, looses_from: Shape::Scissor};
+    let scissor = Hand{ shape: Shape::Scissor, wins_from: Shape::Paper, looses_from: Shape::Rock};
+
+    let match_hand = |s: &str| {
+        match s {
+            "A" | "X" => Some(&rock),
+            "B" | "Y" => Some(&paper),
+            "C" | "Z" => Some(&scissor),
+            _ => None,
+        }
+    };
+
     let mut lines = input.lines();
     let mut my_score1 = 0;
     let mut my_score2 = 0;
     while let Some(line) = lines.next() {
-        let (first, second) = line.split_at(1);
-        let oponent_hand = match_hand(first).unwrap();
-        let my_hand = match_hand(second.trim()).unwrap();
-        let outcome = match oponent_hand {
-            Shape::Rock if my_hand == Shape::Paper => GameEnd::Win,
-            Shape::Rock if my_hand == Shape::Scissor => GameEnd::Lose,
-            Shape::Paper if my_hand == Shape::Rock => GameEnd::Lose,
-            Shape::Paper if my_hand == Shape::Scissor => GameEnd::Win,
-            Shape::Scissor if my_hand == Shape::Paper => GameEnd::Lose,
-            Shape::Scissor if my_hand == Shape::Rock => GameEnd::Win,
-            _ => GameEnd::Tie,
-        };
 
-        my_score1 += my_hand as usize + outcome as usize;
+        let (first, second) = line.split_at(1);
+        let opponent_hand = match_hand(first).unwrap();
+
+        // Part one
+        let my_hand = match_hand(second.trim()).unwrap();
+        let outcome = my_hand.outcome(opponent_hand);
+
+        my_score1 += my_hand.shape as usize + outcome as usize;
 
         // Part two
         let outcome2 = match_end(second.trim()).unwrap();
-        my_score2 += oponent_hand as usize + outcome2 as usize;
-        println!("{my_score2}");
-
-
+        let my_hand2_shape = match outcome2{
+            GameEnd::Win => opponent_hand.looses_from,
+            GameEnd::Draw => opponent_hand.shape,
+            GameEnd::Lose => opponent_hand.wins_from,
+        };
+        my_score2 += my_hand2_shape as usize + outcome2 as usize;
     }
     println!("Solution 1 = {}", my_score1);
     println!("Solution 2 = {}", my_score2);
