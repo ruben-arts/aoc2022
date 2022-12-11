@@ -19,24 +19,24 @@ struct Hand{
 }
 impl Hand{
     fn outcome(&self, opponent: &Hand) -> GameEnd{
-        return if self.shape == opponent.shape{
+        if self.shape == opponent.shape{
             GameEnd::Draw
         } else if self.looses_from == opponent.shape {
             GameEnd::Lose
         } else{
             GameEnd::Win
-        };
+        }
     }
 }
 
 /// Part two needs the values to be matched to GameEnd.
 fn match_end(end: &str) -> Option<GameEnd>{
-    return match end {
+    match end {
         "X" => Some(GameEnd::Lose),
         "Y" => Some(GameEnd::Draw),
         "Z" => Some(GameEnd::Win),
         _ => None,
-    };
+    }
 }
 fn main() {
     // Read input file
@@ -56,10 +56,10 @@ fn main() {
         }
     };
 
-    let mut lines = input.lines();
+    let lines = input.lines();
     let mut my_score1 = 0;
     let mut my_score2 = 0;
-    while let Some(line) = lines.next() {
+    for line in lines {
 
         let (first, second) = line.split_at(1);
         let opponent_hand = match_hand(first).unwrap();

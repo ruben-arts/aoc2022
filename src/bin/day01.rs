@@ -4,8 +4,8 @@ fn main() {
 
     let mut elf_list = Vec::new();
     let mut current_sum = 0;
-    let mut lines = input.lines();
-    while let Some(line) = lines.next() {
+    let lines = input.lines();
+    for line in lines {
         if line.is_empty() {
             elf_list.push(current_sum);
             current_sum = 0;
