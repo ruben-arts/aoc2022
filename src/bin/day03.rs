@@ -13,6 +13,26 @@ fn main() {
         .sum();
 
     println!("Solution part 1 : {}", result);
+
+    let result: usize = input
+        .lines()
+        .collect::<Vec<_>>()
+        .chunks(3)
+        .map(find_overlapping_item_in_group)
+        .map(char_to_priority)
+        .sum();
+
+    println!("Solution part 2 : {}", result);
+}
+
+fn find_overlapping_item_in_group<'a>(group: &'a [&'a str]) -> char {
+    let first_sack = group[0];
+    for c in first_sack.chars() {
+        if group[1].contains(c) && group[2].contains(c) {
+            return c;
+        }
+    }
+    unreachable!()
 }
 
 fn find_overlapping_item(line: &str) -> char {
@@ -35,7 +55,7 @@ fn char_to_priority(c: char) -> usize {
 
 #[cfg(test)]
 mod test {
-    use crate::char_to_priority;
+    use crate::{char_to_priority, find_overlapping_item_in_group};
 
     #[test]
     fn test_char_to_priority() {
@@ -45,5 +65,25 @@ mod test {
         assert_eq!(char_to_priority('P'), 42);
         assert_eq!(char_to_priority('v'), 22);
         assert_eq!(char_to_priority('s'), 19);
+    }
+
+    #[test]
+    fn test_find_overlapping_item_in_group() {
+        assert_eq!(
+            find_overlapping_item_in_group(&[
+                "vJrwpWtwJgWrhcsFMMfFFhFp",
+                "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL",
+                "PmmdzqPrVvPwwTWBwg"
+            ]),
+            'r'
+        );
+        assert_eq!(
+            find_overlapping_item_in_group(&[
+                "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn",
+                "ttgJtRGJQctTZtZT",
+                "CrZsJsPPZsGzwwsLwLmpwMDw"
+            ]),
+            'Z'
+        );
     }
 }
