@@ -8,18 +8,25 @@ fn main() {
 
     let (stacks_s, instructions_s) = input.split_once("\n\n").unwrap();
     let instructions: Vec<Instruction> = instructions_s.lines().map(parse_instruction).collect();
-    let mut state = parse_stacks(stacks_s);
+    let initial_state = parse_stacks(stacks_s);
 
-    for instruction in instructions {
-        state = perform_instruction(state, instruction);
-    }
-
-    let result = state
+    let result = instructions
+        .iter()
+        .fold(initial_state.clone(), perform_instruction)
         .into_iter()
         .filter_map(|v| v.last().copied())
         .collect::<String>();
 
     println!("Solution part 1 : {result}");
+
+    let result = instructions
+        .iter()
+        .fold(initial_state, perform_instruction_9001)
+        .into_iter()
+        .filter_map(|v| v.last().copied())
+        .collect::<String>();
+
+    println!("Solution part 2 : {result}");
 }
 
 #[derive(PartialEq, Debug)]
@@ -29,7 +36,7 @@ struct Instruction {
     to: usize,
 }
 
-fn perform_instruction(mut state: Vec<Vec<char>>, instruction: Instruction) -> Vec<Vec<char>> {
+fn perform_instruction(mut state: Vec<Vec<char>>, instruction: &Instruction) -> Vec<Vec<char>> {
     for _i in 0..instruction.count {
         let value = state[instruction.from].pop().unwrap();
         state[instruction.to].push(value);
@@ -37,6 +44,21 @@ fn perform_instruction(mut state: Vec<Vec<char>>, instruction: Instruction) -> V
 
     state
 }
+
+fn perform_instruction_9001(
+    mut state: Vec<Vec<char>>,
+    instruction: &Instruction,
+) -> Vec<Vec<char>> {
+    let from = &mut state[instruction.from];
+    let from_len = from.len();
+    let pick = from[from_len - instruction.count..].to_vec();
+    from.truncate(from_len - instruction.count);
+
+    state[instruction.to].extend_from_slice(&pick);
+
+    state
+}
+
 fn parse_instruction(line: &str) -> Instruction {
     let (_, count, from, to) = regex_captures!(r#"move (\d*) from (\d*) to (\d*)$"#, line).unwrap();
     // Minus one as we use the index of a vector which starts at 0 instead of 1.
