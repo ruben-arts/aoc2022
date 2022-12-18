@@ -1,8 +1,7 @@
-use std::any::Any;
-use std::path::{Component, Path};
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
-use std::ops::{Deref, Index, IndexMut};
+use std::ops::{Index, IndexMut};
+use std::path::{Component, Path};
 
 #[derive(Clone, Copy, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
 struct EntryId(usize);
@@ -16,7 +15,13 @@ impl FileSystem {
         EntryId(0)
     }
 
-    fn add_entry(&mut self, parent: EntryId, name: impl Into<String>, size: Option<usize>, is_dir: bool) -> EntryId {
+    fn add_entry(
+        &mut self,
+        parent: EntryId,
+        name: impl Into<String>,
+        size: Option<usize>,
+        is_dir: bool,
+    ) -> EntryId {
         let name = name.into();
         let entry_id = EntryId(self.entries.len());
         self.entries.push(FileSystemEntry {
@@ -37,11 +42,11 @@ impl FileSystem {
                 Component::RootDir => self.root(),
                 Component::CurDir => current,
                 Component::ParentDir => self[current].parent,
-                Component::Normal(name) =>
-                    match self[current].children.get(name.to_str().unwrap()) {
-                        Some(entry) => *entry,
-                        None => panic!("could not find entry {:?}", name.to_str())
-                    }
+                Component::Normal(name) => match self[current].children.get(name.to_str().unwrap())
+                {
+                    Some(entry) => *entry,
+                    None => panic!("could not find entry {:?}", name.to_str()),
+                },
             }
         }
         current
@@ -62,7 +67,11 @@ impl FileSystem {
     }
 
     fn dirs(&self) -> Vec<EntryId> {
-        self.entries.iter().enumerate().filter_map(|(idx, entry)| entry.is_dir.then_some(EntryId(idx))).collect::<Vec<_>>()
+        self.entries
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, entry)| entry.is_dir.then_some(EntryId(idx)))
+            .collect::<Vec<_>>()
     }
 }
 
@@ -73,20 +82,32 @@ impl Default for FileSystem {
                 parent: EntryId(0),
                 children: Default::default(),
                 size: None,
-                is_dir: true
-            }]
+                is_dir: true,
+            }],
         }
     }
 }
 
 impl Debug for FileSystem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        fn print_node(f: &mut Formatter<'_>, fs: &FileSystem, entry_id: EntryId, depth: usize) -> std::fmt::Result{
+        fn print_node(
+            f: &mut Formatter<'_>,
+            fs: &FileSystem,
+            entry_id: EntryId,
+            depth: usize,
+        ) -> std::fmt::Result {
             let entry = &fs[entry_id];
             for (name, child_entry_id) in entry.children.iter() {
                 let child_entry = &fs[*child_entry_id];
-                writeln!(f, "{}- {} ({}, size={:?})","  ".repeat(depth), name, if child_entry.is_dir { "dir" } else { "file" }, &child_entry.size)?;
-                print_node(f, fs, *child_entry_id, depth+1)?;
+                writeln!(
+                    f,
+                    "{}- {} ({}, size={:?})",
+                    "  ".repeat(depth),
+                    name,
+                    if child_entry.is_dir { "dir" } else { "file" },
+                    &child_entry.size
+                )?;
+                print_node(f, fs, *child_entry_id, depth + 1)?;
             }
             Ok(())
         }
@@ -116,12 +137,11 @@ impl IndexMut<EntryId> for FileSystem {
     }
 }
 
-
 fn main() {
     // Read input file
     let day = Path::new(file!()).file_stem().unwrap().to_str().unwrap();
     let binding = std::fs::read_to_string(format!("inputs/{day}.txt")).unwrap();
-    let mut input = binding.as_str();
+    let input = binding.as_str();
 
     let mut fs = FileSystem::default();
     let mut current_dir = fs.root();
@@ -130,19 +150,17 @@ fn main() {
     while let Some(command) = iter.next() {
         if command.starts_with("$ ls") {
             while let Some(line) = iter.peek() {
-                if line.starts_with("$") {
-                    break
+                if line.starts_with("$ ") {
+                    break;
                 }
 
                 // Do something with next
                 let line = iter.next().unwrap();
-                if let Some(name) = line.strip_prefix("dir "){
+                if let Some(name) = line.strip_prefix("dir ") {
                     fs.add_entry(current_dir, name.trim(), None, true);
-                }
-                else if let Some((size, name)) = line.split_once(char::is_whitespace) {
+                } else if let Some((size, name)) = line.split_once(char::is_whitespace) {
                     fs.add_entry(current_dir, name.trim(), Some(size.parse().unwrap()), false);
-                }
-                else{
+                } else {
                     unreachable!();
                 }
             }
@@ -156,9 +174,24 @@ fn main() {
     fs.entry_size(fs.root());
     println!("{:?}", fs);
 
-    let mut dirs_sizes: Vec<_> = fs.dirs().into_iter().map(|entry_id| fs.entry_size(entry_id)).collect();
-    dirs_sizes.retain(|&entry| entry < 100000);
-    let total_size:usize = dirs_sizes.iter().sum();
+    let dirs_sizes: Vec<_> = fs
+        .dirs()
+        .into_iter()
+        .map(|entry_id| fs.entry_size(entry_id))
+        .collect();
+    let total_size: usize = dirs_sizes.iter().filter(|size| **size < 100000).sum();
 
     println!("Solution part 1: {}", total_size);
+
+    let needed_free_size = 30000000;
+    let total_size_available = 70000000;
+    let total_size_to_remove = needed_free_size - (total_size_available - fs.entry_size(fs.root()));
+
+    let dir_size_minimal_removal = dirs_sizes
+        .iter()
+        .filter(|&&size| size >= total_size_to_remove)
+        .min()
+        .unwrap();
+
+    println!("Solution part 2: {dir_size_minimal_removal}");
 }
