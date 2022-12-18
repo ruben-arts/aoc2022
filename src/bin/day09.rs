@@ -60,7 +60,7 @@ fn main() {
     let mut tail_pos = Point { x: 0, y: 0 };
     unique_positions.insert(tail_pos);
     for delta in instructions
-        .into_iter()
+        .iter()
         .flat_map(|instr| iter::repeat(instr.direction).take(instr.steps))
     {
         head_pos += delta;
@@ -70,6 +70,26 @@ fn main() {
 
     // Output result
     println!("Solution 1: {}", unique_positions.len());
+
+    // Iterate over all instructions
+    let mut unique_positions = HashSet::new();
+    let mut head_pos = Point { x: 0, y: 0 };
+    let mut rope_pos = [Point { x: 0, y: 0 }; 9];
+    unique_positions.insert(rope_pos[8]);
+    for delta in instructions
+        .iter()
+        .flat_map(|instr| iter::repeat(instr.direction).take(instr.steps))
+    {
+        head_pos += delta;
+        for i in 0..9 {
+            let prev = if i == 0 { head_pos } else { rope_pos[i - 1] };
+            rope_pos[i] = compute_tail_position(prev, rope_pos[i]);
+        }
+
+        unique_positions.insert(rope_pos[8]);
+    }
+
+    println!("Solution 2: {}", unique_positions.len());
 }
 
 fn compute_tail_position(head: Point, tail: Point) -> Point {
